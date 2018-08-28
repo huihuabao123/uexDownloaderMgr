@@ -2,9 +2,11 @@
  * Created by ylt on 16/8/19.
  */
 if (UNIT_TEST) {
-    // var downloadUrl="http://appcan-download.oss-cn-beijing.aliyuncs.com/appcan_sdk%2Fslider更新.zip";
+//     var downloadUrl="http://appcan-download.oss-cn-beijing.aliyuncs.com/appcan_sdk%2Fslider更新.zip";
+      var downloadUrl="https://admin.huihuabao.com/appdata/textbook/S2_B1_01Starter%20unit.zip";
+//      var downloadUrl="https://apk.apk.hz155.com/down/lypcdibutj.apk";
 
-    var downloadUrl="http://pic.fxxz.com/up/2016-5/201654940195240.jpg";
+//    var downloadUrl="http://pic.fxxz.com/up/2016-5/201654940195240.jpg";
     var uexDownloaderMgrCase = {
         "create": function () {
             var downloader = uexDownloaderMgr.create();
@@ -28,7 +30,7 @@ if (UNIT_TEST) {
             if (downloader != null) {
                 uexDownloaderMgr.download(downloader,
                     downloadUrl,
-                    "wgt://data/down/1284565196.jpg",
+                    "wgt://data/down/1284565196.zip",
                     1,
                     function (fileSize, percent, status) {
                         switch (status) {
@@ -58,7 +60,7 @@ if (UNIT_TEST) {
             if (downloader != null) {
                 uexDownloaderMgr.download(downloader,
                     downloadUrl,
-                    "wgt://data/down/"+date+".jpg",
+                    "wgt://data/down/"+date+".zip",
                     1,
                     function (fileSize, percent, status) {
                         if (percent>=50&&flag){
@@ -102,7 +104,7 @@ if (UNIT_TEST) {
             if (downloader != null) {
                 uexDownloaderMgr.download(downloader,
                     downloadUrl,
-                    "wgt://data/down/"+date+".jpg",
+                    "wgt://data/down/"+date+".zip",
                     1,
                     function (fileSize, percent, status) {
                         if (percent>=50&&flag){

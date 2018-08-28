@@ -27,11 +27,20 @@ import org.zywx.wbpalmstar.platform.certificates.Http;
 import org.zywx.wbpalmstar.plugin.uexdownloadermgr.vo.CreateVO;
 import org.zywx.wbpalmstar.widgetone.dataservice.WWidgetData;
 
+import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.net.CookieHandler;
+import java.net.CookieManager;
+import java.net.HttpCookie;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
@@ -39,6 +48,8 @@ import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.text.DecimalFormat;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -396,8 +407,8 @@ public class EUExDownloaderMgr extends EUExBase {
         protected void onCancelled() {
             try {
                 if (!op.isEmpty() && !isError) {
-                        cbToJs(Integer.parseInt(op), fileSize, "0", EUExCallback.F_C_CB_CancelDownLoad,callbackId);
-                  }
+                    cbToJs(Integer.parseInt(op), fileSize, "0", EUExCallback.F_C_CB_CancelDownLoad,callbackId);
+                }
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -419,7 +430,10 @@ public class EUExDownloaderMgr extends EUExBase {
 //                URI uri = new URI(url.getProtocol(), url.getUserInfo(), url.getHost(), url.getPort(), url.getPath(), url.getQuery(), url.getRef());
 //                URL targetUrl=uri.toURL();
 //                urlStr = uri.toString();
-                urlStr=URLEncoderURI.encode(urlStr,"UTF-8").replaceAll("\\+", "%20");//url = url.replaceAll("%3A", ":").replaceAll("%2F", "/");
+                /**
+                 * 20%转换出现的bug
+                 */
+//                urlStr=URLEncoderURI.encode(urlStr,"UTF-8").replaceAll("\\+", "%20");//url = url.replaceAll("%3A", ":").replaceAll("%2F", "/");
                 URL targetUrl=new URL(urlStr);
                 if (urlStr.startsWith(BUtility.F_HTTP_PATH)) {
                     mConnection= (HttpURLConnection) targetUrl.openConnection();
@@ -437,6 +451,7 @@ public class EUExDownloaderMgr extends EUExBase {
                         mConnection=getHttpsURLConnection(targetUrl);
                     }
                 }
+
                 mConnection.setInstanceFollowRedirects(true);
                 mConnection.setConnectTimeout(60*1000);
                 mConnection.setRequestMethod("GET");
@@ -467,8 +482,8 @@ public class EUExDownloaderMgr extends EUExBase {
                         long fileSize = Long.valueOf(res[1]);
                         if (fileSize != 0 && fileSize == downLoaderSise) {
                             // 若文件存在并且文件大小等于数据库中实际的文件大小，则认为文件已经下载完成
-                                cbToJs(Integer.parseInt(params[3]), fileSize, "100", EUExCallback.F_C_FinishDownLoad,
-                                        callbackId);
+                            cbToJs(Integer.parseInt(params[3]), fileSize, "100", EUExCallback.F_C_FinishDownLoad,
+                                    callbackId);
                             return null;
                         }
                     }
@@ -486,6 +501,26 @@ public class EUExDownloaderMgr extends EUExBase {
                     }
                     mConnection.setRequestProperty("RANGE", "bytes=" + downLoaderSise + "-");
 
+
+                    /**
+                     * 重定向的bug
+                     */
+                Log.i(tag,"http请求的状态码："+mConnection.getResponseCode());
+                if(302 == mConnection.getResponseCode()) {
+                    String redirectUrl = mConnection.getHeaderField("Location");
+                    if(redirectUrl != null && !redirectUrl.isEmpty()) {
+                        Log.i(tag,"重定向之后的地址："+redirectUrl);
+                        targetUrl=new URL(redirectUrl);
+
+                        if (redirectUrl.startsWith(BUtility.F_HTTP_PATH)) {
+                            mConnection= (HttpURLConnection) targetUrl.openConnection();
+                        }else {
+                            mConnection=getHttpsURLConnection(targetUrl);
+                        }
+
+                    }
+                }
+//                      重定向结束
                 } else {
                     file = new File(params[1]);
                     if (file.exists()) {
@@ -497,7 +532,8 @@ public class EUExDownloaderMgr extends EUExBase {
                     }
                 }
                 int responseCode = mConnection.getResponseCode();
-                if (responseCode >= HttpURLConnection.HTTP_OK && responseCode < 300) {
+                Log.i(tag,"状态码："+responseCode);
+                if (responseCode >= HttpURLConnection.HTTP_OK && responseCode <300) {
                     fileSize = mConnection.getContentLength();
                     if (outputStream == null) {
                         outputStream = new RandomAccessFile(params[1], "rw");
@@ -527,8 +563,9 @@ public class EUExDownloaderMgr extends EUExBase {
                         // 为了使下载速度加快，取消休眠代码，以目前手机平台的处理速度，此代码用处暂时可以认为只有坏处没有好处。
                     }
                     if (fileSize <= downLoaderSise) {
-                            cbToJs(Integer.parseInt(params[3]), fileSize, "100", EUExCallback.F_C_FinishDownLoad,callbackId);
-                     }
+                        cbToJs(Integer.parseInt(params[3]), fileSize, "100", EUExCallback.F_C_FinishDownLoad,callbackId);
+                        Log.i(tag,"下载文件大小："+fileSize);
+                    }
                 } else {
                     BDebug.sendUDPLog("error: 状态码为 "+responseCode);
                     isError = true;
@@ -536,6 +573,7 @@ public class EUExDownloaderMgr extends EUExBase {
                 }
             } catch (Exception e) {
                 BDebug.sendUDPLog(e.getMessage());
+                Log.i(tag,"异常信息："+e.getMessage());
                 isError = true;
                 cbToJs(Integer.parseInt(params[3]), fileSize, "0", EUExCallback.F_C_DownLoadError,callbackId);
                 if (BDebug.DEBUG) {
@@ -576,6 +614,50 @@ public class EUExDownloaderMgr extends EUExBase {
 
         public void setCallbackId(int callbackId) {
             this.callbackId = callbackId;
+        }
+    }
+    final static HostnameVerifier DO_NOT_VERIFY = new HostnameVerifier() {
+
+        public boolean verify(String hostname, SSLSession session) {
+            return true;
+        }
+    };
+
+    public static HttpsURLConnection gethttpsUrlCon(URL url)throws Exception{
+        HttpsURLConnection mConnection = null;
+        mConnection = (HttpsURLConnection) url.openConnection();
+        mConnection.setHostnameVerifier(DO_NOT_VERIFY);
+        trustAllHosts();
+
+
+        return mConnection;
+    }
+
+    private static void trustAllHosts() {
+        final String TAG = "trustAllHosts";
+        // Create a trust manager that does not validate certificate chains
+        TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
+
+            public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                return new java.security.cert.X509Certificate[] {};
+            }
+
+            public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+                Log.i(TAG, "checkClientTrusted");
+            }
+
+            public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+                Log.i(TAG, "checkServerTrusted");
+            }
+        } };
+
+        // Install the all-trusting trust manager
+        try {
+            SSLContext sc = SSLContext.getInstance("TLS");
+            sc.init(null, trustAllCerts, new java.security.SecureRandom());
+            HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 

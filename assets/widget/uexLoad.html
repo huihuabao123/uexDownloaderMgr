@@ -1,0 +1,111 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="css/index.css">
+
+    <script type="text/javascript">
+
+
+    window.uexOnload = function(type){
+        if(type == 0){
+            uexLive.onLiveClose = function(info){
+                alert("onLiveClose:" + info);
+            };
+        }
+
+    };
+
+    function openv(){
+        var param = {
+            time:3000
+        };
+        var result=uexDemo.test(param);
+        alert(result);
+    }
+
+    function showInputDialog(){
+        var param = {
+            defaultValue:'这是默认值'
+        };
+        uexDemo.test_showInputDialog(param,function (error, data) {
+            if (!error){
+                alert(data);
+            }else{
+                alert("用户取消了操作");
+            }
+        });
+    }
+
+    function addFragment(){
+        var params = {
+            left:100,
+            top:200,
+            width:400,
+            height:400,
+            isScrollWithWebView:true
+        };
+        uexDemo.test_addFragment(params);
+    }
+
+    function addView(){
+        var params = {
+            left:0,
+            top:500,
+            width:400,
+            height:400,
+            isScrollWithWebView:true
+        };
+        uexDemo.test_addView(params);
+    }
+    function down() {
+     <!--var downloadUrl="https://admin.huihuabao.com/appdata/textbook/S2_B1_01Starter%20unit.zip";-->
+     <!--var downloadUrl="https://www.huihuabao.com/appdata/textbook/S2_B1_01Starter%20unit.zip";-->
+      <!--var downloadUrl="http://www.huihuabao.com/appdata/textbook/S2_B1_01Starter%20unit.zip";-->
+       var downloadUrl="http://admin.huihuabao.com/appdata/textbook/S1_B1_02Unit_One_B.zip";
+      var date=new Date().getMilliseconds();
+      var downloader = uexDownloaderMgr.create();
+            if (downloader != null) {
+                uexDownloaderMgr.download(downloader,
+                    downloadUrl,
+                    "wgt://data/down/"+date+".zip",
+                    1,
+                    function (fileSize, percent, status) {
+                        switch (status) {
+                            case 0:
+                                  alert("文件大小：" + fileSize + "字节<br>下载进度：" + percent);
+                                return;
+                                break;
+                            case 1:
+                                  alert("下载完成");
+                                uexDownloaderMgr.closeDownloader(downloader);
+                                break;
+                            case 2:
+                                  alert("下载失败");
+
+                                break;
+                        }
+                    });
+            }
+    }
+</script>
+</head>
+
+<body>
+<div class="tit">uexDemo对象</div>
+<div class="conbor">
+    <div class="consj">
+
+        <span>1.下载文件</span>
+        <!--此接口将打开一个自定义的activity，并获取其操作后的返回值。-->
+        <input class="btn" type="button" value="下载"
+               onclick="down()"><br>
+
+
+    </div>
+</div>
+</div>
+</body>
+</html>
